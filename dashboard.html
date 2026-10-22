@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Tracker</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3250;
+    --accent: #7c6af7;
+    --accent-dim: rgba(124,106,247,0.15);
+    --new: #34d399;
+    --new-dim: rgba(52,211,153,0.12);
+    --text: #e2e4f0;
+    --muted: #7880a8;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 20px;
+  }
+
+  .header {
+    max-width: 960px;
+    margin: 0 auto 32px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+
+  .header-left h1 span {
+    color: var(--accent);
+  }
+
+  .meta {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 90px;
+  }
+
+  .stat .num {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .stat .num.green { color: var(--new); }
+  .stat .label { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .controls {
+    max-width: 960px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px 9px 36px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  .search-wrap::before {
+    content: "🔍";
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  select.filter-btn {
+    appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237880a8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .list {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.2s, background 0.2s;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card:hover { border-color: var(--accent); background: var(--surface2); }
+
+  .card.is-new {
+    background: var(--new-dim);
+    border-color: rgba(52,211,153,0.35);
+  }
+
+  .card.is-new:hover { border-color: var(--new); }
+
+  .card-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .card.is-new .card-dot { background: var(--new); box-shadow: 0 0 6px var(--new); }
+
+  .card-body { flex: 1; min-width: 0; }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .badge-new {
+    background: var(--new-dim);
+    color: var(--new);
+    border: 1px solid rgba(52,211,153,0.3);
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .badge-company {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+
+  .empty .big { font-size: 36px; margin-bottom: 12px; }
+
+  .instructions {
+    max-width: 960px;
+    margin: 40px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+
+  .instructions h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .instructions ol { padding-left: 20px; font-size: 14px; color: var(--muted); line-height: 1.9; }
+
+  .instructions code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: monospace;
+  }
+
+  .tag-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 960px;
+    margin: 0 auto 16px;
+  }
+
+  .tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tag:hover, .tag.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .tag.all.active { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Job <span>Tracker</span></h1>
+    <div class="meta" id="meta">Загрузка данных...</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="num green" id="stat-new">—</div><div class="label">Новых</div></div>
+    <div class="stat"><div class="num" id="stat-total">—</div><div class="label">Всего</div></div>
+    <div class="stat"><div class="num" id="stat-companies">—</div><div class="label">Компаний</div></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Поиск по названию или компании..." oninput="render()">
+  </div>
+  <button class="filter-btn active" id="btn-all" onclick="setFilter('all')">Все</button>
+  <button class="filter-btn" id="btn-new" onclick="setFilter('new')">🟢 Только новые</button>
+  <select class="filter-btn" id="company-filter" onchange="render()">
+    <option value="">Все компании</option>
+  </select>
+</div>
+
+<div class="tag-filter" id="tag-filter"></div>
+
+<div class="list" id="list"></div>
+
+<div class="instructions">
+  <h3>Как запускать</h3>
+  <ol>
+    <li>Установи зависимости один раз: <code>pip install requests beautifulsoup4</code></li>
+    <li>Запускай каждый день: <code>python scraper.py</code></li>
+    <li>Обнови эту страницу в браузере — появятся новые вакансии</li>
+    <li>Для автозапуска на Mac/Linux добавь в cron: <code>0 9 * * * python /путь/к/scraper.py</code></li>
+  </ol>
+</div>
+
+<script>
+  let allJobs = [];
+  let filterMode = 'all';
+
+  // Ключевые слова для тегов
+  const TAGS = [
+    "Data Analyst", "Product Analyst", "Marketing Analyst",
+    "BI Analyst", "Web Analyst", "Аналитик"
+  ];
+
+  async function loadData() {
+    try {
+      let data;
+
+      // Приоритет: данные, вшитые скриптом прямо в HTML
+      if (window.__JOBS__) {
+        data = window.__JOBS__;
+      } else {
+        // Фолбэк: попробовать fetch (работает при запуске через локальный сервер)
+        const r = await fetch('jobs.json');
+        if (!r.ok) throw new Error('not found');
+        data = await r.json();
+      }
+      allJobs = data.jobs || [];
+
+      document.getElementById('stat-new').textContent = data.new_count ?? allJobs.filter(j => j.is_new).length;
+      document.getElementById('stat-total').textContent = data.total_count ?? allJobs.length;
+      const companies = new Set(allJobs.map(j => j.company));
+      document.getElementById('stat-companies').textContent = companies.size;
+      document.getElementById('meta').textContent = data.last_run
+        ? `Последнее обновление: ${data.last_run}`
+        : 'Нет данных';
+
+      // Заполняем выпадающий список компаний
+      const sel = document.getElementById('company-filter');
+      [...companies].sort().forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        sel.appendChild(opt);
+      });
+
+      buildTagFilter();
+      render();
+    } catch (e) {
+      document.getElementById('meta').textContent = 'jobs.json не найден. Сначала запусти scraper.py';
+      document.getElementById('list').innerHTML = `
+        <div class="empty">
+          <div class="big">📂</div>
+          Запусти <strong>scraper.py</strong> — и здесь появятся вакансии
+        </div>`;
+    }
+  }
+
+  function buildTagFilter() {
+    const container = document.getElementById('tag-filter');
+    const all = document.createElement('span');
+    all.className = 'tag all active';
+    all.textContent = 'Все';
+    all.dataset.tag = '';
+    all.onclick = () => setTagFilter(all);
+    container.appendChild(all);
+
+    TAGS.forEach(tag => {
+      const count = allJobs.filter(j => j.title.toLowerCase().includes(tag.toLowerCase())).length;
+      if (count === 0) return;
+      const el = document.createElement('span');
+      el.className = 'tag';
+      el.textContent = `${tag} (${count})`;
+      el.dataset.tag = tag;
+      el.onclick = () => setTagFilter(el);
+      container.appendChild(el);
+    });
+  }
+
+  let activeTag = '';
+
+  function setTagFilter(el) {
+    document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    activeTag = el.dataset.tag;
+    render();
+  }
+
+  function setFilter(mode) {
+    filterMode = mode;
+    document.getElementById('btn-all').classList.toggle('active', mode === 'all');
+    document.getElementById('btn-new').classList.toggle('active', mode === 'new');
+    render();
+  }
+
+  function render() {
+    const query = document.getElementById('search').value.toLowerCase();
+    const company = document.getElementById('company-filter').value;
+
+    let jobs = allJobs.filter(j => {
+      if (filterMode === 'new' && !j.is_new) return false;
+      if (company && j.company !== company) return false;
+      if (activeTag && !j.title.toLowerCase().includes(activeTag.toLowerCase())) return false;
+      if (query && !j.title.toLowerCase().includes(query) && !j.company.toLowerCase().includes(query)) return false;
+      return true;
+    });
+
+    const list = document.getElementById('list');
+
+    if (jobs.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="big">🔎</div>Вакансий не найдено. Попробуй другой фильтр.</div>`;
+      return;
+    }
+
+    list.innerHTML = jobs.map(j => `
+      <a class="card ${j.is_new ? 'is-new' : ''}" href="${j.url}" target="_blank" rel="noopener">
+        <div class="card-dot"></div>
+        <div class="card-body">
+          <div class="card-title">${esc(j.title)}</div>
+          <div class="card-meta">
+            <span>${esc(j.company)}</span>
+            ${j.location ? `<span>📍 ${esc(j.location)}</span>` : ''}
+            ${j.found_at ? `<span>🕒 ${j.found_at}</span>` : ''}
+          </div>
+        </div>
+        <span class="badge-company">${esc(j.company)}</span>
+        ${j.is_new ? '<span class="badge-new">NEW</span>' : ''}
+      </a>
+    `).join('');
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  loadData();
+</script>
+</body>
+</html>
